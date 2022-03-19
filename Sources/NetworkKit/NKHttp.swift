@@ -447,7 +447,7 @@ public class NKHttp {
     }
     
     @available(iOS 15.0, *)
-    static func post(_ urlString: String, parameters: [String: String]? = nil) async -> (String, Bool) {
+    public static func post(_ urlString: String, parameters: [String: String]? = nil) async -> (String, Bool) {
         
         guard let url = URL(string: urlString) else { return ("", false) }
         
@@ -469,7 +469,7 @@ public class NKHttp {
     }
     
     @available(iOS 15.0, *)
-    static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> ([T]?, String, Bool) {
+    public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> ([T]?, String, Bool) {
         
         guard let url = URL(string: urlString) else { return (nil, "", false) }
         
