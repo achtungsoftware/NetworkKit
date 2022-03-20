@@ -637,26 +637,10 @@ extension NKHttp {
     
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> [T]? {
-        
-        guard let url = URL(string: urlString) else { return nil }
-        
-        // Prepare URL Request Object
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        
-        // Set HTTP Request Body
-        request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
+        guard let jsonData = await post(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
         
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            guard let dataString = String(data: data, encoding: .utf8) else { return nil }
-            guard let jsonData = dataString.data(using: .utf8) else { return nil }
-            
-            do {
-                return try JSONDecoder().decode([T].self, from: jsonData)
-            } catch {
-                return nil
-            }
+            return try JSONDecoder().decode([T].self, from: jsonData)
         } catch {
             return nil
         }
@@ -664,26 +648,10 @@ extension NKHttp {
     
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> T? {
-        
-        guard let url = URL(string: urlString) else { return nil }
-        
-        // Prepare URL Request Object
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        
-        // Set HTTP Request Body
-        request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
+        guard let jsonData = await post(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
         
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            guard let dataString = String(data: data, encoding: .utf8) else { return nil }
-            guard let jsonData = dataString.data(using: .utf8) else { return nil }
-            
-            do {
-                return try JSONDecoder().decode(T.self, from: jsonData)
-            } catch {
-                return nil
-            }
+            return try JSONDecoder().decode(T.self, from: jsonData)
         } catch {
             return nil
         }
@@ -714,23 +682,10 @@ extension NKHttp {
     
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func getObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> T? {
-        
-        let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
-        guard let url = URL(string: urlWithParameters) else { return nil }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        guard let jsonData = await get(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
         
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            guard let dataString = String(data: data, encoding: .utf8) else { return nil }
-            guard let jsonData = dataString.data(using: .utf8) else { return nil }
-            
-            do {
-                return try JSONDecoder().decode(T.self, from: jsonData)
-            } catch {
-                return nil
-            }
+            return try JSONDecoder().decode(T.self, from: jsonData)
         } catch {
             return nil
         }
@@ -738,23 +693,10 @@ extension NKHttp {
     
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func getObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> [T]? {
-        
-        let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
-        guard let url = URL(string: urlWithParameters) else { return nil }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        guard let jsonData = await get(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
         
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            guard let dataString = String(data: data, encoding: .utf8) else { return nil }
-            guard let jsonData = dataString.data(using: .utf8) else { return nil }
-            
-            do {
-                return try JSONDecoder().decode([T].self, from: jsonData)
-            } catch {
-                return nil
-            }
+            return try JSONDecoder().decode([T].self, from: jsonData)
         } catch {
             return nil
         }
