@@ -498,6 +498,37 @@ public class NKHttp {
             return (nil, "", false)
         }
     }
+    
+    @available(iOS 15.0, *)
+    public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> (T?, String, Bool) {
+        
+        guard let url = URL(string: urlString) else { return (nil, "", false) }
+        
+        // Prepare URL Request Object
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        // Set HTTP Request Body
+        request.httpBody = buildPostDataString(parameters).data(using: String.Encoding.utf8)
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let dataString = String(data: data, encoding: .utf8) else { return (nil, "", false) }
+            guard let response = response as? HTTPURLResponse else { return (nil, "", false) }
+            
+            guard let jsonData = dataString.data(using: .utf8) else { return (nil, "", false) }
+            
+            do {
+                let data: T = try JSONDecoder().decode(T.self, from: jsonData)
+                
+                return (data, dataString, response.statusCode == 200)
+            } catch {
+                return (nil, "", false)
+            }
+        } catch {
+            return (nil, "", false)
+        }
+    }
 }
 
 extension NSMutableData {
