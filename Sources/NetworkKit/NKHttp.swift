@@ -29,6 +29,8 @@ import UIKit
 /// A class for handling http requests and json encoding
 public class NKHttp {
     
+    private static let jsonDecoder: JSONDecoder = JSONDecoder()
+    
     /// Creates an parameter string from a dictionary and applies url encoding to the value
     /// - Parameter parameters: The parameter dictionary
     /// - Returns: An encoded String for url paramater
@@ -247,7 +249,7 @@ extension NKHttp {
                 
                 if let jsonData = jsonData {
                     do {
-                        let data: T = try JSONDecoder().decode(T.self, from: jsonData)
+                        let data: T = try jsonDecoder.decode(T.self, from: jsonData)
                         SPThreadHelper.async.main.run {
                             callback(data, dataString, true)
                         }
@@ -319,7 +321,7 @@ extension NKHttp {
                 
                 if let jsonData = jsonData {
                     do {
-                        let data: [T] = try JSONDecoder().decode([T].self, from: jsonData)
+                        let data: [T] = try jsonDecoder.decode([T].self, from: jsonData)
                         SPThreadHelper.async.main.run {
                             callback(data, dataString, true)
                         }
@@ -461,7 +463,7 @@ extension NKHttp {
                 
                 if let jsonData = jsonData {
                     do {
-                        let data: T = try JSONDecoder().decode(T.self, from: jsonData)
+                        let data: T = try jsonDecoder.decode(T.self, from: jsonData)
                         SPThreadHelper.async.main.run {
                             callback(data)
                         }
@@ -533,7 +535,7 @@ extension NKHttp {
                 
                 if let jsonData = jsonData {
                     do {
-                        let data: [T] = try JSONDecoder().decode([T].self, from: jsonData)
+                        let data: [T] = try jsonDecoder.decode([T].self, from: jsonData)
                         SPThreadHelper.async.main.run {
                             callback(data)
                         }
@@ -640,7 +642,7 @@ extension NKHttp {
         guard let jsonData = await post(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
         
         do {
-            return try JSONDecoder().decode([T].self, from: jsonData)
+            return try jsonDecoder.decode([T].self, from: jsonData)
         } catch {
             return nil
         }
@@ -651,7 +653,7 @@ extension NKHttp {
         guard let jsonData = await post(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
         
         do {
-            return try JSONDecoder().decode(T.self, from: jsonData)
+            return try jsonDecoder.decode(T.self, from: jsonData)
         } catch {
             return nil
         }
@@ -685,7 +687,7 @@ extension NKHttp {
         guard let jsonData = await get(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
         
         do {
-            return try JSONDecoder().decode(T.self, from: jsonData)
+            return try jsonDecoder.decode(T.self, from: jsonData)
         } catch {
             return nil
         }
@@ -696,7 +698,7 @@ extension NKHttp {
         guard let jsonData = await get(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
         
         do {
-            return try JSONDecoder().decode([T].self, from: jsonData)
+            return try jsonDecoder.decode([T].self, from: jsonData)
         } catch {
             return nil
         }
