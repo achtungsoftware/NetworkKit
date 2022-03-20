@@ -44,19 +44,11 @@ public class NKHttp {
     }
 }
 
-// POST CALLBACK
+/// POST callback methods
 extension NKHttp {
     
 #if os(iOS)
-    /// This function uploads mutiple media to the server (Audio, Video, Image)
-    /// - Parameters:
-    ///   - urlString: The Api url
-    ///   - parameters: Post parameters
-    ///   - videos: An Array of video asset urls
-    ///   - images: An Array of images
-    ///   - audios: An Array of audio asset urls
-    ///   - thread: The ``CUThreadHelper`` async thread for processing
-    ///   - callback: Callback with the result String and success Bool
+    
     @available(iOS 7.0, *)
     public static func upload(_ urlString: String, parameters: [String: String]? = nil, videos: [String: URL]? = nil, images: [String: UIImage]? = nil, audios: [String: URL]? = nil, thread: SPThreadHelper.async = .background, callback: @escaping (String, Bool) -> ()) {
         thread.run {
@@ -146,7 +138,6 @@ extension NKHttp {
             let task = URLSession.shared.dataTask(with: request as URLRequest) {
                 data, response, error in
                 
-                // Check if Error took place
                 if error != nil {
                     SPThreadHelper.async.main.run {
                         callback("", false)
@@ -154,7 +145,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Read HTTP Response Status code
                 guard let response = response as? HTTPURLResponse else {
                     SPThreadHelper.async.main.run {
                         callback("", false)
@@ -162,7 +152,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Check if data is valid
                 guard let data = data else {
                     SPThreadHelper.async.main.run {
                         callback("", false)
@@ -170,7 +159,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Convert HTTP Response Data to a simple String
                 guard let dataString = String(data: data, encoding: .utf8) else {
                     SPThreadHelper.async.main.run {
                         callback("", false)
@@ -178,7 +166,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Check if HTTP-STATUS-CODE is OK (200)
                 if response.statusCode != 200 {
                     SPThreadHelper.async.main.run {
                         callback("", false)
@@ -197,12 +184,6 @@ extension NKHttp {
     
 #endif
     
-    /// This function makes an http post request and trys to encode the result to an object
-    /// - Parameters:
-    ///   - urlString: The Api url
-    ///   - parameters: Post parameters
-    ///   - thread: The ``CUThreadHelper`` async thread for processing
-    ///   - callback: Callback with the object, the result String and success Bool
     public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping (T?, String, Bool) -> ()){
         thread.run {
             
@@ -213,17 +194,13 @@ extension NKHttp {
                 return
             }
             
-            // Prepare URL Request Object
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             
-            // Set HTTP Request Body
             request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
             
-            // Perform HTTP Request
             let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
                 
-                // Check if Error took place
                 if error != nil {
                     SPThreadHelper.async.main.run {
                         callback(nil, "", false)
@@ -231,7 +208,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Read HTTP Response Status code
                 guard let response = response as? HTTPURLResponse else {
                     SPThreadHelper.async.main.run {
                         callback(nil, "", false)
@@ -239,7 +215,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Check if data is valid
                 guard let data = data else {
                     SPThreadHelper.async.main.run {
                         callback(nil, "", false)
@@ -247,7 +222,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Convert HTTP Response Data to a simple String
                 guard let dataString = String(data: data, encoding: .utf8) else {
                     SPThreadHelper.async.main.run {
                         callback(nil, "", false)
@@ -255,7 +229,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Check if HTTP-STATUS-CODE is OK (200)
                 if response.statusCode != 200 {
                     SPThreadHelper.async.main.run {
                         callback(nil, "", false)
@@ -290,12 +263,6 @@ extension NKHttp {
         }
     }
     
-    /// This function makes an http post request and trys to encode the result to an object array
-    /// - Parameters:
-    ///   - urlString: The Api url
-    ///   - parameters: Post parameters
-    ///   - thread: The ``CUThreadHelper`` async thread for processing
-    ///   - callback: Callback with the object array, the result String and success Bool
     public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping ([T]?, String, Bool) -> ()){
         
         thread.run {
@@ -306,17 +273,13 @@ extension NKHttp {
                 return
             }
             
-            // Prepare URL Request Object
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             
-            // Set HTTP Request Body
             request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
             
-            // Perform HTTP Request
             let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
                 
-                // Check if Error took place
                 if error != nil {
                     SPThreadHelper.async.main.run {
                         callback(nil, "", false)
@@ -324,7 +287,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Read HTTP Response Status code
                 guard let response = response as? HTTPURLResponse else {
                     SPThreadHelper.async.main.run {
                         callback(nil, "", false)
@@ -332,7 +294,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Check if data is valid
                 guard let data = data else {
                     SPThreadHelper.async.main.run {
                         callback(nil, "", false)
@@ -340,7 +301,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Convert HTTP Response Data to a simple String
                 guard let dataString = String(data: data, encoding: .utf8) else {
                     SPThreadHelper.async.main.run {
                         callback(nil, "", false)
@@ -348,7 +308,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Check if HTTP-STATUS-CODE is OK (200)
                 if response.statusCode != 200 {
                     SPThreadHelper.async.main.run {
                         callback(nil, "", false)
@@ -376,12 +335,6 @@ extension NKHttp {
         }
     }
     
-    /// This function makes an http post request
-    /// - Parameters:
-    ///   - urlString: The Api url
-    ///   - parameters: Post parameters
-    ///   - thread: The ``CUThreadHelper`` async thread for processing
-    ///   - callback: Callback with the result String and success Bool
     public static func post(_ urlString: String, parameters: [String: String]? = nil, thread: SPThreadHelper.async = .utility, callback: @escaping (String, Bool) -> ()){
         thread.run {
             
@@ -392,17 +345,13 @@ extension NKHttp {
                 return
             }
             
-            // Prepare URL Request Object
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             
-            // Set HTTP Request Body
             request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
             
-            // Perform HTTP Request
             let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
                 
-                // Check if Error took place
                 if error != nil {
                     SPThreadHelper.async.main.run {
                         callback("", false)
@@ -410,7 +359,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Read HTTP Response Status code
                 guard let response = response as? HTTPURLResponse else {
                     SPThreadHelper.async.main.run {
                         callback("", false)
@@ -418,7 +366,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Check if data is valid
                 guard let data = data else {
                     SPThreadHelper.async.main.run {
                         callback("", false)
@@ -426,7 +373,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Convert HTTP Response Data to a simple String
                 guard let dataString = String(data: data, encoding: .utf8) else {
                     SPThreadHelper.async.main.run {
                         callback("", false)
@@ -434,7 +380,6 @@ extension NKHttp {
                     return
                 }
                 
-                // Check if HTTP-STATUS-CODE is OK (200)
                 if response.statusCode != 200 {
                     SPThreadHelper.async.main.run {
                         callback("", false)
@@ -451,7 +396,221 @@ extension NKHttp {
     }
 }
 
-// POST ASYNC
+/// GET callback methods
+extension NKHttp {
+    
+    public static func getObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping (T?) -> ()){
+        thread.run {
+            
+            let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
+            guard let url = URL(string: urlWithParameters) else {
+                SPThreadHelper.async.main.run {
+                    callback(nil)
+                }
+                return
+            }
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            
+            let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+                
+                if error != nil {
+                    SPThreadHelper.async.main.run {
+                        callback(nil)
+                    }
+                    return
+                }
+                
+                guard let response = response as? HTTPURLResponse else {
+                    SPThreadHelper.async.main.run {
+                        callback(nil)
+                    }
+                    return
+                }
+                
+                guard let data = data else {
+                    SPThreadHelper.async.main.run {
+                        callback(nil)
+                    }
+                    return
+                }
+                
+                guard let dataString = String(data: data, encoding: .utf8) else {
+                    SPThreadHelper.async.main.run {
+                        callback(nil)
+                    }
+                    return
+                }
+                
+                if response.statusCode != 200 {
+                    SPThreadHelper.async.main.run {
+                        callback(nil)
+                    }
+                    return
+                }
+                
+                if dataString.isEmpty {
+                    SPThreadHelper.async.main.run {
+                        callback(nil)
+                    }
+                    return
+                }
+                
+                let jsonData = dataString.data(using: .utf8)
+                
+                if let jsonData = jsonData {
+                    do {
+                        let data: T = try JSONDecoder().decode(T.self, from: jsonData)
+                        SPThreadHelper.async.main.run {
+                            callback(data)
+                        }
+                        return
+                    } catch {}
+                }
+                
+                SPThreadHelper.async.main.run {
+                    callback(nil)
+                }
+            }
+            task.resume()
+        }
+    }
+    
+    public static func getObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping ([T]?) -> ()){
+        
+        thread.run {
+            
+            let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
+            guard let url = URL(string: urlWithParameters) else {
+                SPThreadHelper.async.main.run {
+                    callback(nil)
+                }
+                return
+            }
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            
+            let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+                
+                if error != nil {
+                    SPThreadHelper.async.main.run {
+                        callback(nil)
+                    }
+                    return
+                }
+                
+                guard let response = response as? HTTPURLResponse else {
+                    SPThreadHelper.async.main.run {
+                        callback(nil)
+                    }
+                    return
+                }
+                
+                guard let data = data else {
+                    SPThreadHelper.async.main.run {
+                        callback(nil)
+                    }
+                    return
+                }
+                
+                guard let dataString = String(data: data, encoding: .utf8) else {
+                    SPThreadHelper.async.main.run {
+                        callback(nil)
+                    }
+                    return
+                }
+                
+                if response.statusCode != 200 {
+                    SPThreadHelper.async.main.run {
+                        callback(nil)
+                    }
+                    return
+                }
+                
+                let jsonData = dataString.data(using: .utf8)
+                
+                if let jsonData = jsonData {
+                    do {
+                        let data: [T] = try JSONDecoder().decode([T].self, from: jsonData)
+                        SPThreadHelper.async.main.run {
+                            callback(data)
+                        }
+                        return
+                    } catch {}
+                }
+                
+                SPThreadHelper.async.main.run {
+                    callback(nil)
+                }
+            }
+            task.resume()
+        }
+    }
+    
+    public static func get(_ urlString: String, parameters: [String: String]? = nil, thread: SPThreadHelper.async = .utility, callback: @escaping (String, Bool) -> ()){
+        thread.run {
+            
+            let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
+            guard let url = URL(string: urlWithParameters) else {
+                SPThreadHelper.async.main.run {
+                    callback("", false)
+                }
+                return
+            }
+            
+            // Prepare URL Request Object
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            
+            let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+                
+                if error != nil {
+                    SPThreadHelper.async.main.run {
+                        callback("", false)
+                    }
+                    return
+                }
+                
+                guard let response = response as? HTTPURLResponse else {
+                    SPThreadHelper.async.main.run {
+                        callback("", false)
+                    }
+                    return
+                }
+                
+                guard let data = data else {
+                    SPThreadHelper.async.main.run {
+                        callback("", false)
+                    }
+                    return
+                }
+                
+                guard let dataString = String(data: data, encoding: .utf8) else {
+                    SPThreadHelper.async.main.run {
+                        callback("", false)
+                    }
+                    return
+                }
+                
+                if response.statusCode != 200 {
+                    SPThreadHelper.async.main.run {
+                        callback("", false)
+                    }
+                    return
+                }
+                
+                SPThreadHelper.async.main.run {
+                    callback(dataString, true)
+                }
+            }
+            task.resume()
+        }
+    }
+}
+
+/// POST async methods
 extension NKHttp {
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func post(_ urlString: String, parameters: [String: String]? = nil) async -> (String, Bool) {
@@ -537,7 +696,7 @@ extension NKHttp {
     }
 }
 
-/// GET ASYNC
+/// GET async methods
 extension NKHttp {
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func get(_ urlString: String, parameters: [String: String]? = nil) async -> (String, Bool) {
