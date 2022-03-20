@@ -636,9 +636,9 @@ extension NKHttp {
     }
     
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> ([T]?, String, Bool) {
+    public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> [T]? {
         
-        guard let url = URL(string: urlString) else { return (nil, "", false) }
+        guard let url = URL(string: urlString) else { return nil }
         
         // Prepare URL Request Object
         var request = URLRequest(url: url)
@@ -648,27 +648,24 @@ extension NKHttp {
         request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
         
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let dataString = String(data: data, encoding: .utf8) else { return (nil, "", false) }
-            guard let response = response as? HTTPURLResponse else { return (nil, "", false) }
-            guard let jsonData = dataString.data(using: .utf8) else { return (nil, "", false) }
+            let (data, _) = try await URLSession.shared.data(for: request)
+            guard let dataString = String(data: data, encoding: .utf8) else { return nil }
+            guard let jsonData = dataString.data(using: .utf8) else { return nil }
             
             do {
-                let data: [T] = try JSONDecoder().decode([T].self, from: jsonData)
-                
-                return (data, dataString, response.statusCode == 200)
+                return try JSONDecoder().decode([T].self, from: jsonData)
             } catch {
-                return (nil, "", false)
+                return nil
             }
         } catch {
-            return (nil, "", false)
+            return nil
         }
     }
     
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> (T?, String, Bool) {
+    public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> T? {
         
-        guard let url = URL(string: urlString) else { return (nil, "", false) }
+        guard let url = URL(string: urlString) else { return nil }
         
         // Prepare URL Request Object
         var request = URLRequest(url: url)
@@ -678,20 +675,17 @@ extension NKHttp {
         request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
         
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let dataString = String(data: data, encoding: .utf8) else { return (nil, "", false) }
-            guard let response = response as? HTTPURLResponse else { return (nil, "", false) }
-            guard let jsonData = dataString.data(using: .utf8) else { return (nil, "", false) }
+            let (data, _) = try await URLSession.shared.data(for: request)
+            guard let dataString = String(data: data, encoding: .utf8) else { return nil }
+            guard let jsonData = dataString.data(using: .utf8) else { return nil }
             
             do {
-                let data: T = try JSONDecoder().decode(T.self, from: jsonData)
-                
-                return (data, dataString, response.statusCode == 200)
+                return try JSONDecoder().decode(T.self, from: jsonData)
             } catch {
-                return (nil, "", false)
+                return nil
             }
         } catch {
-            return (nil, "", false)
+            return nil
         }
     }
 }
