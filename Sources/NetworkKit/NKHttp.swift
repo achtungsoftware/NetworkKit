@@ -29,6 +29,24 @@ import UIKit
 /// A class for handling http requests and json encoding
 public class NKHttp {
     
+    /// Creates an parameter string from a dictionary and applies url encoding to the value
+    /// - Parameter parameters: The parameter dictionary
+    /// - Returns: An encoded String for url paramater
+    public static func buildParameterString(_ parameters: [String: String]?) -> String {
+        var postData = ""
+        if let parameters = parameters {
+            for (key, value) in parameters {
+                postData.append("\(key)=\(value.urlEncode())&")
+            }
+        }
+        
+        return String(postData.dropLast())
+    }
+}
+
+// POST CALLBACK
+extension NKHttp {
+    
 #if os(iOS)
     /// This function uploads mutiple media to the server (Audio, Video, Image)
     /// - Parameters:
@@ -200,7 +218,7 @@ public class NKHttp {
             request.httpMethod = "POST"
             
             // Set HTTP Request Body
-            request.httpBody = buildPostDataString(parameters).data(using: String.Encoding.utf8)
+            request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
             
             // Perform HTTP Request
             let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
@@ -293,7 +311,7 @@ public class NKHttp {
             request.httpMethod = "POST"
             
             // Set HTTP Request Body
-            request.httpBody = buildPostDataString(parameters).data(using: String.Encoding.utf8)
+            request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
             
             // Perform HTTP Request
             let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
@@ -379,7 +397,7 @@ public class NKHttp {
             request.httpMethod = "POST"
             
             // Set HTTP Request Body
-            request.httpBody = buildPostDataString(parameters).data(using: String.Encoding.utf8)
+            request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
             
             // Perform HTTP Request
             let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
@@ -431,22 +449,11 @@ public class NKHttp {
             task.resume()
         }
     }
-    
-    /// Creates an parameter string from a dictionary and applies url encoding to the value
-    /// - Parameter parameters: The parameter dictionary
-    /// - Returns: An encoded String for url paramater
-    public static func buildPostDataString(_ parameters: [String: String]?) -> String {
-        var postData = ""
-        if let parameters = parameters {
-            for (key, value) in parameters {
-                postData.append("\(key)=\(value.urlEncode())&")
-            }
-        }
-        
-        return String(postData.dropLast())
-    }
-    
-    @available(iOS 15.0, *)
+}
+
+// POST ASYNC
+extension NKHttp {
+    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func post(_ urlString: String, parameters: [String: String]? = nil) async -> (String, Bool) {
         
         guard let url = URL(string: urlString) else { return ("", false) }
@@ -456,19 +463,20 @@ public class NKHttp {
         request.httpMethod = "POST"
         
         // Set HTTP Request Body
-        request.httpBody = buildPostDataString(parameters).data(using: String.Encoding.utf8)
+        request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
         
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let dataString = String(data: data, encoding: .utf8) else { return ("", false) }
             guard let response = response as? HTTPURLResponse else { return ("", false) }
+            
             return (dataString, response.statusCode == 200)
         } catch {
             return ("", false)
         }
     }
     
-    @available(iOS 15.0, *)
+    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> ([T]?, String, Bool) {
         
         guard let url = URL(string: urlString) else { return (nil, "", false) }
@@ -478,13 +486,12 @@ public class NKHttp {
         request.httpMethod = "POST"
         
         // Set HTTP Request Body
-        request.httpBody = buildPostDataString(parameters).data(using: String.Encoding.utf8)
+        request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
         
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let dataString = String(data: data, encoding: .utf8) else { return (nil, "", false) }
             guard let response = response as? HTTPURLResponse else { return (nil, "", false) }
-            
             guard let jsonData = dataString.data(using: .utf8) else { return (nil, "", false) }
             
             do {
@@ -499,7 +506,7 @@ public class NKHttp {
         }
     }
     
-    @available(iOS 15.0, *)
+    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> (T?, String, Bool) {
         
         guard let url = URL(string: urlString) else { return (nil, "", false) }
@@ -509,17 +516,93 @@ public class NKHttp {
         request.httpMethod = "POST"
         
         // Set HTTP Request Body
-        request.httpBody = buildPostDataString(parameters).data(using: String.Encoding.utf8)
+        request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
         
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let dataString = String(data: data, encoding: .utf8) else { return (nil, "", false) }
             guard let response = response as? HTTPURLResponse else { return (nil, "", false) }
-            
             guard let jsonData = dataString.data(using: .utf8) else { return (nil, "", false) }
             
             do {
                 let data: T = try JSONDecoder().decode(T.self, from: jsonData)
+                
+                return (data, dataString, response.statusCode == 200)
+            } catch {
+                return (nil, "", false)
+            }
+        } catch {
+            return (nil, "", false)
+        }
+    }
+}
+
+/// GET ASYNC
+extension NKHttp {
+    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
+    public static func get(_ urlString: String, parameters: [String: String]? = nil) async -> (String, Bool) {
+        
+        let urlWithParameters = urlString + "?" + buildParameterString(parameters)
+        guard let url = URL(string: urlWithParameters) else { return ("", false) }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let dataString = String(data: data, encoding: .utf8) else { return ("", false) }
+            guard let response = response as? HTTPURLResponse else { return ("", false) }
+            
+            return (dataString, response.statusCode == 200)
+        } catch {
+            return ("", false)
+        }
+    }
+    
+    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
+    public static func getObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> (T?, String, Bool) {
+        
+        let urlWithParameters = urlString + "?" + buildParameterString(parameters)
+        guard let url = URL(string: urlWithParameters) else { return (nil, "", false) }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let dataString = String(data: data, encoding: .utf8) else { return (nil, "", false) }
+            guard let response = response as? HTTPURLResponse else { return (nil, "", false) }
+            guard let jsonData = dataString.data(using: .utf8) else { return (nil, "", false) }
+            
+            do {
+                let data: T = try JSONDecoder().decode(T.self, from: jsonData)
+                
+                return (data, dataString, response.statusCode == 200)
+            } catch {
+                return (nil, "", false)
+            }
+        } catch {
+            return (nil, "", false)
+        }
+    }
+    
+    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
+    public static func getObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> ([T]?, String, Bool) {
+        
+        let urlWithParameters = urlString + "?" + buildParameterString(parameters)
+        guard let url = URL(string: urlWithParameters) else { return (nil, "", false) }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let dataString = String(data: data, encoding: .utf8) else { return (nil, "", false) }
+            guard let response = response as? HTTPURLResponse else { return (nil, "", false) }
+            guard let jsonData = dataString.data(using: .utf8) else { return (nil, "", false) }
+            
+            do {
+                let data: [T] = try JSONDecoder().decode([T].self, from: jsonData)
                 
                 return (data, dataString, response.statusCode == 200)
             } catch {
