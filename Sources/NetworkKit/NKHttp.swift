@@ -542,7 +542,7 @@ extension NKHttp {
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func get(_ urlString: String, parameters: [String: String]? = nil) async -> (String, Bool) {
         
-        let urlWithParameters = urlString + "?" + buildParameterString(parameters)
+        let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
         guard let url = URL(string: urlWithParameters) else { return ("", false) }
         
         var request = URLRequest(url: url)
@@ -562,7 +562,7 @@ extension NKHttp {
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func getObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> (T?, String, Bool) {
         
-        let urlWithParameters = urlString + "?" + buildParameterString(parameters)
+        let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
         guard let url = URL(string: urlWithParameters) else { return (nil, "", false) }
         
         var request = URLRequest(url: url)
@@ -589,7 +589,7 @@ extension NKHttp {
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func getObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> ([T]?, String, Bool) {
         
-        let urlWithParameters = urlString + "?" + buildParameterString(parameters)
+        let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
         guard let url = URL(string: urlWithParameters) else { return (nil, "", false) }
         
         var request = URLRequest(url: url)
