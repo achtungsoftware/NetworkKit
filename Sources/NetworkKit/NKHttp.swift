@@ -186,12 +186,28 @@ extension NKHttp {
     
 #endif
     
-    public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping (T?, String, Bool) -> ()){
+    /// Post a json object with callback http get
+    ///
+    /// Example:
+    ///
+    ///     NKHttp.postObject("YOUR_URL", parameters: ["foo": "bar"], type: Model.self) { obj in
+    ///         if let obj = obj {
+    ///             // Do something with your object
+    ///         }
+    ///     }
+    ///
+    /// - Parameters:
+    ///   - urlString: The url as `String`
+    ///   - parameters: Post url parameters, default is `nil`
+    ///   - type: The model type, needs to conform to `Decodable`
+    ///   - thread: The `SPThreadHelper.async` async thread, default is `.utility`
+    ///   - callback: The callback with `Optional` object
+    public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping (T?) -> ()){
         thread.run {
             
             guard let url = URL(string: urlString) else {
                 SPThreadHelper.async.main.run {
-                    callback(nil, "", false)
+                    callback(nil)
                 }
                 return
             }
@@ -205,42 +221,42 @@ extension NKHttp {
                 
                 if error != nil {
                     SPThreadHelper.async.main.run {
-                        callback(nil, "", false)
+                        callback(nil)
                     }
                     return
                 }
                 
                 guard let response = response as? HTTPURLResponse else {
                     SPThreadHelper.async.main.run {
-                        callback(nil, "", false)
+                        callback(nil)
                     }
                     return
                 }
                 
                 guard let data = data else {
                     SPThreadHelper.async.main.run {
-                        callback(nil, "", false)
+                        callback(nil)
                     }
                     return
                 }
                 
                 guard let dataString = String(data: data, encoding: .utf8) else {
                     SPThreadHelper.async.main.run {
-                        callback(nil, "", false)
+                        callback(nil)
                     }
                     return
                 }
                 
                 if response.statusCode != 200 {
                     SPThreadHelper.async.main.run {
-                        callback(nil, "", false)
+                        callback(nil)
                     }
                     return
                 }
                 
                 if dataString.isEmpty {
                     SPThreadHelper.async.main.run {
-                        callback(nil, "", false)
+                        callback(nil)
                     }
                     return
                 }
@@ -251,26 +267,42 @@ extension NKHttp {
                     do {
                         let data: T = try jsonDecoder.decode(T.self, from: jsonData)
                         SPThreadHelper.async.main.run {
-                            callback(data, dataString, true)
+                            callback(data)
                         }
                         return
                     } catch {}
                 }
                 
                 SPThreadHelper.async.main.run {
-                    callback(nil, "", false)
+                    callback(nil)
                 }
             }
             task.resume()
         }
     }
     
-    public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping ([T]?, String, Bool) -> ()){
+    /// Post a json object array with callback http get
+    ///
+    /// Example:
+    ///
+    ///     NKHttp.postObjectArray("YOUR_URL", parameters: ["foo": "bar"], type: Model.self) { array in
+    ///         if let array = array {
+    ///             // Do something with your array
+    ///         }
+    ///     }
+    ///
+    /// - Parameters:
+    ///   - urlString: The url as `String`
+    ///   - parameters: Post url parameters, default is `nil`
+    ///   - type: The model type, needs to conform to `Decodable`
+    ///   - thread: The `SPThreadHelper.async` async thread, default is `.utility`
+    ///   - callback: The callback with `Optional` object array
+    public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping ([T]?) -> ()){
         
         thread.run {
             guard let url = URL(string: urlString) else {
                 SPThreadHelper.async.main.run {
-                    callback(nil, "", false)
+                    callback(nil)
                 }
                 return
             }
@@ -284,35 +316,35 @@ extension NKHttp {
                 
                 if error != nil {
                     SPThreadHelper.async.main.run {
-                        callback(nil, "", false)
+                        callback(nil)
                     }
                     return
                 }
                 
                 guard let response = response as? HTTPURLResponse else {
                     SPThreadHelper.async.main.run {
-                        callback(nil, "", false)
+                        callback(nil)
                     }
                     return
                 }
                 
                 guard let data = data else {
                     SPThreadHelper.async.main.run {
-                        callback(nil, "", false)
+                        callback(nil)
                     }
                     return
                 }
                 
                 guard let dataString = String(data: data, encoding: .utf8) else {
                     SPThreadHelper.async.main.run {
-                        callback(nil, "", false)
+                        callback(nil)
                     }
                     return
                 }
                 
                 if response.statusCode != 200 {
                     SPThreadHelper.async.main.run {
-                        callback(nil, "", false)
+                        callback(nil)
                     }
                     return
                 }
@@ -323,20 +355,35 @@ extension NKHttp {
                     do {
                         let data: [T] = try jsonDecoder.decode([T].self, from: jsonData)
                         SPThreadHelper.async.main.run {
-                            callback(data, dataString, true)
+                            callback(data)
                         }
                         return
                     } catch {}
                 }
                 
                 SPThreadHelper.async.main.run {
-                    callback(nil, "", false)
+                    callback(nil)
                 }
             }
             task.resume()
         }
     }
     
+    /// Http post with callback function
+    ///
+    /// Example:
+    ///
+    ///     NKHttp.post("YOUR_URL", parameters: ["foo": "bar"]) { result, success in
+    ///         if success {
+    ///             print(result)
+    ///         }
+    ///     }
+    ///
+    /// - Parameters:
+    ///   - urlString: The url as `String`
+    ///   - parameters: Post url parameters, default is `nil`
+    ///   - thread: The `SPThreadHelper.async` async thread, default is `.utility`
+    ///   - callback: The callback with result body and success `Bool`
     public static func post(_ urlString: String, parameters: [String: String]? = nil, thread: SPThreadHelper.async = .utility, callback: @escaping (String, Bool) -> ()){
         thread.run {
             
@@ -401,6 +448,22 @@ extension NKHttp {
 /// GET callback methods
 extension NKHttp {
     
+    /// Get a json object with callback http get
+    ///
+    /// Example:
+    ///
+    ///     NKHttp.getObject("YOUR_URL", parameters: ["foo": "bar"], type: Model.self) { obj in
+    ///         if let obj = obj {
+    ///             // Do something with your object
+    ///         }
+    ///     }
+    ///
+    /// - Parameters:
+    ///   - urlString: The url as `String`
+    ///   - parameters: Get url parameters, default is `nil`
+    ///   - type: The model type, needs to conform to `Decodable`
+    ///   - thread: The `SPThreadHelper.async` async thread, default is `.utility`
+    ///   - callback: The callback with `Optional` object
     public static func getObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping (T?) -> ()){
         thread.run {
             
@@ -479,6 +542,23 @@ extension NKHttp {
         }
     }
     
+    
+    /// Get a json object array with callback http get
+    ///
+    /// Example:
+    ///
+    ///     NKHttp.getObjectArray("YOUR_URL", parameters: ["foo": "bar"], type: Model.self) { array in
+    ///         if let array = array {
+    ///             // Do something with your array
+    ///         }
+    ///     }
+    ///
+    /// - Parameters:
+    ///   - urlString: The url as `String`
+    ///   - parameters: Get url parameters, default is `nil`
+    ///   - type: The model type, needs to conform to `Decodable`
+    ///   - thread: The `SPThreadHelper.async` async thread, default is `.utility`
+    ///   - callback: The callback with `Optional` object array
     public static func getObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping ([T]?) -> ()){
         
         thread.run {
@@ -551,6 +631,22 @@ extension NKHttp {
         }
     }
     
+    
+    /// Http get with callback function
+    ///
+    /// Example:
+    ///
+    ///     NKHttp.get("YOUR_URL", parameters: ["foo": "bar"]) { result, success in
+    ///         if success {
+    ///             print(result)
+    ///         }
+    ///     }
+    ///
+    /// - Parameters:
+    ///   - urlString: The url as `String`
+    ///   - parameters: Get url parameters, default is `nil`
+    ///   - thread: The `SPThreadHelper.async` async thread, default is `.utility`
+    ///   - callback: The callback with result body and success `Bool`
     public static func get(_ urlString: String, parameters: [String: String]? = nil, thread: SPThreadHelper.async = .utility, callback: @escaping (String, Bool) -> ()){
         thread.run {
             
@@ -614,6 +710,17 @@ extension NKHttp {
 
 /// POST async methods
 extension NKHttp {
+    
+    /// Asynchronous http post
+    ///
+    /// Example:
+    ///
+    ///     let (result, success) = NKHttp.await post("YOUR_URL", parameters: ["foo": "bar"])
+    ///
+    /// - Parameters:
+    ///   - urlString: The url as `String`
+    ///   - parameters: Post url parameters, default is `nil`
+    /// - Returns: The result body and success `Bool`
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func post(_ urlString: String, parameters: [String: String]? = nil) async -> (String, Bool) {
         
@@ -637,17 +744,17 @@ extension NKHttp {
         }
     }
     
-    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> [T]? {
-        guard let jsonData = await post(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
-        
-        do {
-            return try jsonDecoder.decode([T].self, from: jsonData)
-        } catch {
-            return nil
-        }
-    }
-    
+    /// Post a json object with asynchronous http get
+    ///
+    /// Example:
+    ///
+    ///     let obj: Model = await NKHttp.postObject("YOUR_URL", parameters: ["foo": "bar"], type: Model.self)
+    ///
+    /// - Parameters:
+    ///   - urlString: The url as `String`
+    ///   - parameters: Post url parameters, default is `nil`
+    ///   - type: The model type, needs to conform to `Decodable`
+    /// - Returns: `Optional` object
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> T? {
         guard let jsonData = await post(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
@@ -658,10 +765,43 @@ extension NKHttp {
             return nil
         }
     }
+    
+    /// Post a json object array with asynchronous http get
+    ///
+    /// Example:
+    ///
+    ///     let array: Array<Model> = await NKHttp.postObjectArray("YOUR_URL", parameters: ["foo": "bar"], type: Model.self)
+    ///
+    /// - Parameters:
+    ///   - urlString: The url as `String`
+    ///   - parameters: Post url parameters, default is `nil`
+    ///   - type: The model type, needs to conform to `Decodable`
+    /// - Returns: `Optional` object array
+    @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
+    public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> [T]? {
+        guard let jsonData = await post(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
+        
+        do {
+            return try jsonDecoder.decode([T].self, from: jsonData)
+        } catch {
+            return nil
+        }
+    }
 }
 
 /// GET async methods
 extension NKHttp {
+    
+    /// Asynchronous http get
+    ///
+    /// Example:
+    ///
+    ///     let (result, success) = await NKHttp.get("YOUR_URL", parameters: ["foo": "bar"])
+    ///
+    /// - Parameters:
+    ///   - urlString: The url as `String`
+    ///   - parameters: Get url parameters, default is `nil`
+    /// - Returns: The result body and success `Bool`
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func get(_ urlString: String, parameters: [String: String]? = nil) async -> (String, Bool) {
         
@@ -682,6 +822,17 @@ extension NKHttp {
         }
     }
     
+    /// Get a json object with asynchronous http get
+    ///
+    /// Example:
+    ///
+    ///     let obj: Model = await NKHttp.getObject("YOUR_URL", parameters: ["foo": "bar"], type: Model.self)
+    ///
+    /// - Parameters:
+    ///   - urlString: The url as `String`
+    ///   - parameters: Get url parameters, default is `nil`
+    ///   - type: The model type, needs to conform to `Decodable`
+    /// - Returns: `Optional` object
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func getObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> T? {
         guard let jsonData = await get(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
@@ -693,6 +844,17 @@ extension NKHttp {
         }
     }
     
+    /// Get a json object array with asynchronous http get
+    ///
+    /// Example:
+    ///
+    ///     let array: Array<Model> = await NKHttp.getObjectArray("YOUR_URL", parameters: ["foo": "bar"], type: Model.self)
+    ///
+    /// - Parameters:
+    ///   - urlString: The url as `String`
+    ///   - parameters: Get url parameters, default is `nil`
+    ///   - type: The model type, needs to conform to `Decodable`
+    /// - Returns: `Optional` object array
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     public static func getObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> [T]? {
         guard let jsonData = await get(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
