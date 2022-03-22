@@ -708,6 +708,7 @@ extension NKHttp {
     }
 }
 
+#if os(iOS) || os(watchOS) || os(tvOS) || os(macOS)
 /// POST async methods
 extension NKHttp {
     
@@ -866,6 +867,7 @@ extension NKHttp {
         }
     }
 }
+#endif
 
 extension NSMutableData {
     func appendString(string: String) {
