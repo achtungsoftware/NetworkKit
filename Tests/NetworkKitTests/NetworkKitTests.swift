@@ -1,11 +1,10 @@
 import XCTest
 @testable import NetworkKit
 
+@available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 final class NetworkKitTests: XCTestCase {
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
-        XCTAssertEqual(NetworkKit().text, "Hello, World!")
-    }
+    
+//    func test_callback() throws {
+//
+//    }
 }

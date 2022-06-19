@@ -11,17 +11,15 @@ let package = Package(
             name: "NetworkKit",
             targets: ["NetworkKit"]),
     ],
-    dependencies: [
-        .package(url: "https://github.com/knoggl/SwiftPlus.git", .upToNextMajor(from: "1.1.1"))
-    ],
+    dependencies: [],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "NetworkKit",
-            dependencies: ["SwiftPlus"]),
+            dependencies: []),
         .testTarget(
             name: "NetworkKitTests",
-            dependencies: ["NetworkKit", "SwiftPlus"]),
+            dependencies: ["NetworkKit"]),
     ]
 )

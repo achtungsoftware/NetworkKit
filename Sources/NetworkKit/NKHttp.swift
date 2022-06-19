@@ -16,7 +16,6 @@
 //
 
 import Foundation
-import SwiftPlus
 
 #if canImport(FoundationNetworking)
 import FoundationNetworking
@@ -38,7 +37,7 @@ public class NKHttp {
         var postData = ""
         if let parameters = parameters {
             for (key, value) in parameters {
-                postData.append("\(key)=\(value.urlEncode())&")
+                postData.append("\(key)=\(value.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? "")&")
             }
         }
         
@@ -52,136 +51,114 @@ extension NKHttp {
 #if os(iOS)
     
     @available(iOS 7.0, *)
-    public static func upload(_ urlString: String, parameters: [String: String]? = nil, videos: [String: URL]? = nil, images: [String: UIImage]? = nil, audios: [String: URL]? = nil, thread: SPThreadHelper.async = .background, callback: @escaping (String, Bool) -> ()) {
-        thread.run {
+    public static func upload(_ urlString: String, parameters: [String: String]? = nil, videos: [String: URL]? = nil, images: [String: UIImage]? = nil, audios: [String: URL]? = nil, callback: @escaping (String, Bool) -> ()) throws {
+        
+        guard let url = URL(string: urlString) else {
+            throw NKHttpError.invalidUrl
+        }
+        
+        let request = NSMutableURLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        
+        let boundary = "Boundary-\(NSUUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        
+        let body = NSMutableData()
+        
+        if let parameters = parameters {
+            for (key, value) in parameters {
+                body.appendString(string: "--\(boundary)\r\n")
+                body.appendString(string: "Content-Disposition: form-data; name=\"\(key)\"\r\n\r\n")
+                body.appendString(string: "\(value)\r\n")
+            }
+        }
+        
+        if let images = images {
+            for (name, image) in images {
+                if let imageData = image.jpegData(compressionQuality: 0.8) {
+                    body.appendString(string: "--\(boundary)\r\n")
+                    body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"image.jpg\"\r\n")
+                    body.appendString(string: "Content-Type: image/jpg\r\n\r\n")
+                    body.append(imageData as Data)
+                    body.appendString(string: "\r\n")
+                }
+            }
+        }
+        
+        if let videos = videos {
+            for (name, video) in videos {
+                let videoData = try Data(contentsOf: video, options: Data.ReadingOptions.alwaysMapped)
+                body.appendString(string: "--\(boundary)\r\n")
+                body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"video.mp4\"\r\n")
+                body.appendString(string: "Content-Type: video/mp4\r\n\r\n")
+                body.append(videoData as Data)
+                body.appendString(string: "\r\n")
+            }
+        }
+        
+        
+        if let audios = audios {
+            for (name, audio) in audios {
+                let audioData = try Data(contentsOf: audio, options: Data.ReadingOptions.alwaysMapped)
+                body.appendString(string: "--\(boundary)\r\n")
+                body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"audio.m4a\"\r\n")
+                body.appendString(string: "Content-Type: audio/m4a\r\n\r\n")
+                body.append(audioData as Data)
+                body.appendString(string: "\r\n")
+            }
+        }
+        
+        body.appendString(string: "--\(boundary)--\r\n")
+        
+        
+        request.httpBody = body as Data
+        
+        
+        let task = URLSession.shared.dataTask(with: request as URLRequest) {
+            data, response, error in
             
-            guard let url = URL(string: urlString) else {
-                SPThreadHelper.async.main.run {
+            if error != nil {
+                DispatchQueue.main.async {
                     callback("", false)
                 }
                 return
             }
             
-            let request = NSMutableURLRequest(url: url)
-            request.httpMethod = "POST"
-            
-            
-            let boundary = "Boundary-\(NSUUID().uuidString)"
-            request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-            
-            
-            let body = NSMutableData()
-            
-            if let parameters = parameters {
-                for (key, value) in parameters {
-                    body.appendString(string: "--\(boundary)\r\n")
-                    body.appendString(string: "Content-Disposition: form-data; name=\"\(key)\"\r\n\r\n")
-                    body.appendString(string: "\(value)\r\n")
+            guard let response = response as? HTTPURLResponse else {
+                DispatchQueue.main.async {
+                    callback("", false)
                 }
+                return
             }
             
-            if let images = images {
-                for (name, image) in images {
-                    if let imageData = image.jpegData(compressionQuality: 0.8) {
-                        body.appendString(string: "--\(boundary)\r\n")
-                        body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"image.jpg\"\r\n")
-                        body.appendString(string: "Content-Type: image/jpg\r\n\r\n")
-                        body.append(imageData as Data)
-                        body.appendString(string: "\r\n")
-                    }
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    callback("", false)
                 }
+                return
             }
             
-            if let videos = videos {
-                for (name, video) in videos {
-                    var videoData: Data?
-                    do {
-                        videoData = try Data(contentsOf: video, options: Data.ReadingOptions.alwaysMapped)
-                    } catch _ {
-                        videoData = nil
-                    }
-                    
-                    if let videoData = videoData {
-                        body.appendString(string: "--\(boundary)\r\n")
-                        body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"video.mp4\"\r\n")
-                        body.appendString(string: "Content-Type: video/mp4\r\n\r\n")
-                        body.append(videoData as Data)
-                        body.appendString(string: "\r\n")
-                    }
+            guard let dataString = String(data: data, encoding: .utf8) else {
+                DispatchQueue.main.async {
+                    callback("", false)
                 }
+                return
             }
             
-            
-            if let audios = audios {
-                for (name, audio) in audios {
-                    var audioData: Data?
-                    do {
-                        audioData = try Data(contentsOf: audio, options: Data.ReadingOptions.alwaysMapped)
-                    } catch _ {
-                        audioData = nil
-                    }
-                    
-                    if let audioData = audioData {
-                        body.appendString(string: "--\(boundary)\r\n")
-                        body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"audio.m4a\"\r\n")
-                        body.appendString(string: "Content-Type: audio/m4a\r\n\r\n")
-                        body.append(audioData as Data)
-                        body.appendString(string: "\r\n")
-                    }
+            if response.statusCode != 200 {
+                DispatchQueue.main.async {
+                    callback("", false)
                 }
+                return
             }
             
-            body.appendString(string: "--\(boundary)--\r\n")
-            
-            
-            request.httpBody = body as Data
-            
-            
-            let task = URLSession.shared.dataTask(with: request as URLRequest) {
-                data, response, error in
-                
-                if error != nil {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
-                }
-                
-                guard let response = response as? HTTPURLResponse else {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
-                }
-                
-                guard let data = data else {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
-                }
-                
-                guard let dataString = String(data: data, encoding: .utf8) else {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
-                }
-                
-                if response.statusCode != 200 {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
-                }
-                
-                SPThreadHelper.async.main.run {
-                    callback(dataString, true)
-                }
+            DispatchQueue.main.async {
+                callback(dataString, true)
             }
-            
-            task.resume()
         }
+        task.resume()
     }
     
 #endif
@@ -200,85 +177,79 @@ extension NKHttp {
     ///   - urlString: The url as `String`
     ///   - parameters: Post url parameters, default is `nil`
     ///   - type: The model type, needs to conform to `Decodable`
-    ///   - thread: The `SPThreadHelper.async` async thread, default is `.utility`
     ///   - callback: The callback with `Optional` object
-    public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping (T?) -> ()){
-        thread.run {
+    public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, callback: @escaping (T?) -> ()) throws {
+        
+        guard let url = URL(string: urlString) else {
+            throw NKHttpError.invalidUrl
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
+        
+        let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
             
-            guard let url = URL(string: urlString) else {
-                SPThreadHelper.async.main.run {
+            if error != nil {
+                DispatchQueue.main.async {
                     callback(nil)
                 }
                 return
             }
             
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            
-            request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
-            
-            let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-                
-                if error != nil {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                guard let response = response as? HTTPURLResponse else {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                guard let data = data else {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                guard let dataString = String(data: data, encoding: .utf8) else {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                if response.statusCode != 200 {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                if dataString.isEmpty {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                let jsonData = dataString.data(using: .utf8)
-                
-                if let jsonData = jsonData {
-                    do {
-                        let data: T = try jsonDecoder.decode(T.self, from: jsonData)
-                        SPThreadHelper.async.main.run {
-                            callback(data)
-                        }
-                        return
-                    } catch {}
-                }
-                
-                SPThreadHelper.async.main.run {
+            guard let response = response as? HTTPURLResponse else {
+                DispatchQueue.main.async {
                     callback(nil)
                 }
+                return
             }
-            task.resume()
+            
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            guard let dataString = String(data: data, encoding: .utf8) else {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            if response.statusCode != 200 {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            if dataString.isEmpty {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            let jsonData = dataString.data(using: .utf8)
+            
+            if let jsonData = jsonData {
+                do {
+                    let data: T = try jsonDecoder.decode(T.self, from: jsonData)
+                    DispatchQueue.main.async {
+                        callback(data)
+                    }
+                    return
+                } catch {}
+            }
+            
+            DispatchQueue.main.async {
+                callback(nil)
+            }
         }
+        task.resume()
     }
     
     /// Post a json object array with callback http get
@@ -295,78 +266,72 @@ extension NKHttp {
     ///   - urlString: The url as `String`
     ///   - parameters: Post url parameters, default is `nil`
     ///   - type: The model type, needs to conform to `Decodable`
-    ///   - thread: The `SPThreadHelper.async` async thread, default is `.utility`
     ///   - callback: The callback with `Optional` object array
-    public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping ([T]?) -> ()){
+    public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, callback: @escaping ([T]?) -> ()) throws {
         
-        thread.run {
-            guard let url = URL(string: urlString) else {
-                SPThreadHelper.async.main.run {
+        guard let url = URL(string: urlString) else {
+            throw NKHttpError.invalidUrl
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
+        
+        let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+            
+            if error != nil {
+                DispatchQueue.main.async {
                     callback(nil)
                 }
                 return
             }
             
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            
-            request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
-            
-            let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-                
-                if error != nil {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                guard let response = response as? HTTPURLResponse else {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                guard let data = data else {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                guard let dataString = String(data: data, encoding: .utf8) else {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                if response.statusCode != 200 {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                let jsonData = dataString.data(using: .utf8)
-                
-                if let jsonData = jsonData {
-                    do {
-                        let data: [T] = try jsonDecoder.decode([T].self, from: jsonData)
-                        SPThreadHelper.async.main.run {
-                            callback(data)
-                        }
-                        return
-                    } catch {}
-                }
-                
-                SPThreadHelper.async.main.run {
+            guard let response = response as? HTTPURLResponse else {
+                DispatchQueue.main.async {
                     callback(nil)
                 }
+                return
             }
-            task.resume()
+            
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            guard let dataString = String(data: data, encoding: .utf8) else {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            if response.statusCode != 200 {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            let jsonData = dataString.data(using: .utf8)
+            
+            if let jsonData = jsonData {
+                do {
+                    let data: [T] = try jsonDecoder.decode([T].self, from: jsonData)
+                    DispatchQueue.main.async {
+                        callback(data)
+                    }
+                    return
+                } catch {}
+            }
+            
+            DispatchQueue.main.async {
+                callback(nil)
+            }
         }
+        task.resume()
     }
     
     /// Http post with callback function
@@ -382,66 +347,60 @@ extension NKHttp {
     /// - Parameters:
     ///   - urlString: The url as `String`
     ///   - parameters: Post url parameters, default is `nil`
-    ///   - thread: The `SPThreadHelper.async` async thread, default is `.utility`
     ///   - callback: The callback with result body and success `Bool`
-    public static func post(_ urlString: String, parameters: [String: String]? = nil, thread: SPThreadHelper.async = .utility, callback: @escaping (String, Bool) -> ()){
-        thread.run {
+    public static func post(_ urlString: String, parameters: [String: String]? = nil, callback: @escaping (String, Bool) -> ()) throws {
+        
+        guard let url = URL(string: urlString) else {
+            throw NKHttpError.invalidUrl
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
+        
+        let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
             
-            guard let url = URL(string: urlString) else {
-                SPThreadHelper.async.main.run {
+            if error != nil {
+                DispatchQueue.main.async {
                     callback("", false)
                 }
                 return
             }
             
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            
-            request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
-            
-            let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-                
-                if error != nil {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
+            guard let response = response as? HTTPURLResponse else {
+                DispatchQueue.main.async {
+                    callback("", false)
                 }
-                
-                guard let response = response as? HTTPURLResponse else {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
-                }
-                
-                guard let data = data else {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
-                }
-                
-                guard let dataString = String(data: data, encoding: .utf8) else {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
-                }
-                
-                if response.statusCode != 200 {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
-                }
-                
-                SPThreadHelper.async.main.run {
-                    callback(dataString, true)
-                }
+                return
             }
-            task.resume()
+            
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    callback("", false)
+                }
+                return
+            }
+            
+            guard let dataString = String(data: data, encoding: .utf8) else {
+                DispatchQueue.main.async {
+                    callback("", false)
+                }
+                return
+            }
+            
+            if response.statusCode != 200 {
+                DispatchQueue.main.async {
+                    callback("", false)
+                }
+                return
+            }
+            
+            DispatchQueue.main.async {
+                callback(dataString, true)
+            }
         }
+        task.resume()
     }
 }
 
@@ -462,84 +421,78 @@ extension NKHttp {
     ///   - urlString: The url as `String`
     ///   - parameters: Get url parameters, default is `nil`
     ///   - type: The model type, needs to conform to `Decodable`
-    ///   - thread: The `SPThreadHelper.async` async thread, default is `.utility`
     ///   - callback: The callback with `Optional` object
-    public static func getObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping (T?) -> ()){
-        thread.run {
+    public static func getObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, callback: @escaping (T?) -> ()) throws {
+        
+        let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
+        guard let url = URL(string: urlWithParameters) else {
+            throw NKHttpError.invalidUrl
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
             
-            let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
-            guard let url = URL(string: urlWithParameters) else {
-                SPThreadHelper.async.main.run {
+            if error != nil {
+                DispatchQueue.main.async {
                     callback(nil)
                 }
                 return
             }
             
-            var request = URLRequest(url: url)
-            request.httpMethod = "GET"
-            
-            let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-                
-                if error != nil {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                guard let response = response as? HTTPURLResponse else {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                guard let data = data else {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                guard let dataString = String(data: data, encoding: .utf8) else {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                if response.statusCode != 200 {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                if dataString.isEmpty {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                let jsonData = dataString.data(using: .utf8)
-                
-                if let jsonData = jsonData {
-                    do {
-                        let data: T = try jsonDecoder.decode(T.self, from: jsonData)
-                        SPThreadHelper.async.main.run {
-                            callback(data)
-                        }
-                        return
-                    } catch {}
-                }
-                
-                SPThreadHelper.async.main.run {
+            guard let response = response as? HTTPURLResponse else {
+                DispatchQueue.main.async {
                     callback(nil)
                 }
+                return
             }
-            task.resume()
+            
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            guard let dataString = String(data: data, encoding: .utf8) else {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            if response.statusCode != 200 {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            if dataString.isEmpty {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            let jsonData = dataString.data(using: .utf8)
+            
+            if let jsonData = jsonData {
+                do {
+                    let data: T = try jsonDecoder.decode(T.self, from: jsonData)
+                    DispatchQueue.main.async {
+                        callback(data)
+                    }
+                    return
+                } catch {}
+            }
+            
+            DispatchQueue.main.async {
+                callback(nil)
+            }
         }
+        task.resume()
     }
     
     
@@ -557,78 +510,72 @@ extension NKHttp {
     ///   - urlString: The url as `String`
     ///   - parameters: Get url parameters, default is `nil`
     ///   - type: The model type, needs to conform to `Decodable`
-    ///   - thread: The `SPThreadHelper.async` async thread, default is `.utility`
     ///   - callback: The callback with `Optional` object array
-    public static func getObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, thread: SPThreadHelper.async = .utility, callback: @escaping ([T]?) -> ()){
+    public static func getObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, callback: @escaping ([T]?) -> ()) throws {
         
-        thread.run {
+        
+        let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
+        guard let url = URL(string: urlWithParameters) else {
+            throw NKHttpError.invalidUrl
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
             
-            let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
-            guard let url = URL(string: urlWithParameters) else {
-                SPThreadHelper.async.main.run {
+            if error != nil {
+                DispatchQueue.main.async {
                     callback(nil)
                 }
                 return
             }
             
-            var request = URLRequest(url: url)
-            request.httpMethod = "GET"
-            
-            let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-                
-                if error != nil {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                guard let response = response as? HTTPURLResponse else {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                guard let data = data else {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                guard let dataString = String(data: data, encoding: .utf8) else {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                if response.statusCode != 200 {
-                    SPThreadHelper.async.main.run {
-                        callback(nil)
-                    }
-                    return
-                }
-                
-                let jsonData = dataString.data(using: .utf8)
-                
-                if let jsonData = jsonData {
-                    do {
-                        let data: [T] = try jsonDecoder.decode([T].self, from: jsonData)
-                        SPThreadHelper.async.main.run {
-                            callback(data)
-                        }
-                        return
-                    } catch {}
-                }
-                
-                SPThreadHelper.async.main.run {
+            guard let response = response as? HTTPURLResponse else {
+                DispatchQueue.main.async {
                     callback(nil)
                 }
+                return
             }
-            task.resume()
+            
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            guard let dataString = String(data: data, encoding: .utf8) else {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            if response.statusCode != 200 {
+                DispatchQueue.main.async {
+                    callback(nil)
+                }
+                return
+            }
+            
+            let jsonData = dataString.data(using: .utf8)
+            
+            if let jsonData = jsonData {
+                do {
+                    let data: [T] = try jsonDecoder.decode([T].self, from: jsonData)
+                    DispatchQueue.main.async {
+                        callback(data)
+                    }
+                    return
+                } catch {}
+            }
+            
+            DispatchQueue.main.async {
+                callback(nil)
+            }
         }
+        task.resume()
     }
     
     
@@ -645,66 +592,60 @@ extension NKHttp {
     /// - Parameters:
     ///   - urlString: The url as `String`
     ///   - parameters: Get url parameters, default is `nil`
-    ///   - thread: The `SPThreadHelper.async` async thread, default is `.utility`
     ///   - callback: The callback with result body and success `Bool`
-    public static func get(_ urlString: String, parameters: [String: String]? = nil, thread: SPThreadHelper.async = .utility, callback: @escaping (String, Bool) -> ()){
-        thread.run {
+    public static func get(_ urlString: String, parameters: [String: String]? = nil, callback: @escaping (String, Bool) -> ()) throws {
+        
+        let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
+        guard let url = URL(string: urlWithParameters) else {
+            throw NKHttpError.invalidUrl
+        }
+        
+        // Prepare URL Request Object
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
             
-            let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
-            guard let url = URL(string: urlWithParameters) else {
-                SPThreadHelper.async.main.run {
+            if error != nil {
+                DispatchQueue.main.async {
                     callback("", false)
                 }
                 return
             }
             
-            // Prepare URL Request Object
-            var request = URLRequest(url: url)
-            request.httpMethod = "GET"
-            
-            let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-                
-                if error != nil {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
+            guard let response = response as? HTTPURLResponse else {
+                DispatchQueue.main.async {
+                    callback("", false)
                 }
-                
-                guard let response = response as? HTTPURLResponse else {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
-                }
-                
-                guard let data = data else {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
-                }
-                
-                guard let dataString = String(data: data, encoding: .utf8) else {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
-                }
-                
-                if response.statusCode != 200 {
-                    SPThreadHelper.async.main.run {
-                        callback("", false)
-                    }
-                    return
-                }
-                
-                SPThreadHelper.async.main.run {
-                    callback(dataString, true)
-                }
+                return
             }
-            task.resume()
+            
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    callback("", false)
+                }
+                return
+            }
+            
+            guard let dataString = String(data: data, encoding: .utf8) else {
+                DispatchQueue.main.async {
+                    callback("", false)
+                }
+                return
+            }
+            
+            if response.statusCode != 200 {
+                DispatchQueue.main.async {
+                    callback("", false)
+                }
+                return
+            }
+            
+            DispatchQueue.main.async {
+                callback(dataString, true)
+            }
         }
+        task.resume()
     }
 }
 
@@ -723,9 +664,11 @@ extension NKHttp {
     ///   - parameters: Post url parameters, default is `nil`
     /// - Returns: The result body and success `Bool`
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    public static func post(_ urlString: String, parameters: [String: String]? = nil) async -> (String, Bool) {
+    public static func post(_ urlString: String, parameters: [String: String]? = nil) async throws -> (String, Bool) {
         
-        guard let url = URL(string: urlString) else { return ("", false) }
+        guard let url = URL(string: urlString) else {
+            throw NKHttpError.invalidUrl
+        }
         
         // Prepare URL Request Object
         var request = URLRequest(url: url)
@@ -734,15 +677,16 @@ extension NKHttp {
         // Set HTTP Request Body
         request.httpBody = buildParameterString(parameters).data(using: String.Encoding.utf8)
         
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let dataString = String(data: data, encoding: .utf8) else { return ("", false) }
-            guard let response = response as? HTTPURLResponse else { return ("", false) }
-            
-            return (dataString, response.statusCode == 200)
-        } catch {
-            return ("", false)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let dataString = String(data: data, encoding: .utf8) else {
+            throw NKHttpError.decodingDataFailed
         }
+        
+        guard let response = response as? HTTPURLResponse else {
+            throw NKHttpError.responseFailed
+        }
+        
+        return (dataString, response.statusCode == 200)
     }
     
     /// Post a json object with asynchronous http get
@@ -755,16 +699,13 @@ extension NKHttp {
     ///   - urlString: The url as `String`
     ///   - parameters: Post url parameters, default is `nil`
     ///   - type: The model type, needs to conform to `Decodable`
-    /// - Returns: `Optional` object
+    /// - Returns: Object with the given type
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> T? {
-        guard let jsonData = await post(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
-        
-        do {
-            return try jsonDecoder.decode(T.self, from: jsonData)
-        } catch {
-            return nil
+    public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async throws -> T {
+        guard let jsonData = try await post(urlString, parameters: parameters).0.data(using: .utf8) else {
+            throw NKHttpError.encodingDataFailed
         }
+        return try jsonDecoder.decode(T.self, from: jsonData)
     }
     
     /// Post a json object array with asynchronous http get
@@ -777,16 +718,13 @@ extension NKHttp {
     ///   - urlString: The url as `String`
     ///   - parameters: Post url parameters, default is `nil`
     ///   - type: The model type, needs to conform to `Decodable`
-    /// - Returns: `Optional` object array
+    /// - Returns: Object array with the given type
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> [T]? {
-        guard let jsonData = await post(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
-        
-        do {
-            return try jsonDecoder.decode([T].self, from: jsonData)
-        } catch {
-            return nil
+    public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async throws -> [T] {
+        guard let jsonData = try await post(urlString, parameters: parameters).0.data(using: .utf8) else {
+            throw NKHttpError.encodingDataFailed
         }
+        return try jsonDecoder.decode([T].self, from: jsonData)
     }
 }
 
@@ -804,23 +742,28 @@ extension NKHttp {
     ///   - parameters: Get url parameters, default is `nil`
     /// - Returns: The result body and success `Bool`
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    public static func get(_ urlString: String, parameters: [String: String]? = nil) async -> (String, Bool) {
+    public static func get(_ urlString: String, parameters: [String: String]? = nil) async throws -> (String, Bool) {
         
         let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
-        guard let url = URL(string: urlWithParameters) else { return ("", false) }
+        
+        guard let url = URL(string: urlWithParameters) else {
+            throw NKHttpError.invalidUrl
+        }
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let dataString = String(data: data, encoding: .utf8) else { return ("", false) }
-            guard let response = response as? HTTPURLResponse else { return ("", false) }
-            
-            return (dataString, response.statusCode == 200)
-        } catch {
-            return ("", false)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let dataString = String(data: data, encoding: .utf8) else {
+            throw NKHttpError.decodingDataFailed
         }
+        
+        guard let response = response as? HTTPURLResponse else {
+            throw NKHttpError.responseFailed
+        }
+        
+        return (dataString, response.statusCode == 200)
     }
     
     /// Get a json object with asynchronous http get
@@ -833,16 +776,13 @@ extension NKHttp {
     ///   - urlString: The url as `String`
     ///   - parameters: Get url parameters, default is `nil`
     ///   - type: The model type, needs to conform to `Decodable`
-    /// - Returns: `Optional` object
+    /// - Returns: Object with the given type
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    public static func getObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> T? {
-        guard let jsonData = await get(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
-        
-        do {
-            return try jsonDecoder.decode(T.self, from: jsonData)
-        } catch {
-            return nil
+    public static func getObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async throws -> T {
+        guard let jsonData = try await get(urlString, parameters: parameters).0.data(using: .utf8) else {
+            throw NKHttpError.encodingDataFailed
         }
+        return try jsonDecoder.decode(T.self, from: jsonData)
     }
     
     /// Get a json object array with asynchronous http get
@@ -855,16 +795,13 @@ extension NKHttp {
     ///   - urlString: The url as `String`
     ///   - parameters: Get url parameters, default is `nil`
     ///   - type: The model type, needs to conform to `Decodable`
-    /// - Returns: `Optional` object array
+    /// - Returns: Object array with the given type
     @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    public static func getObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async -> [T]? {
-        guard let jsonData = await get(urlString, parameters: parameters).0.data(using: .utf8) else { return nil }
-        
-        do {
-            return try jsonDecoder.decode([T].self, from: jsonData)
-        } catch {
-            return nil
+    public static func getObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type) async throws -> [T] {
+        guard let jsonData = try await get(urlString, parameters: parameters).0.data(using: .utf8) else {
+            throw NKHttpError.encodingDataFailed
         }
+        return try jsonDecoder.decode([T].self, from: jsonData)
     }
 }
 #endif
