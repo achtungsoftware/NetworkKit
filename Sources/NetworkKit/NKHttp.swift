@@ -51,10 +51,13 @@ extension NKHttp {
 #if os(iOS)
     
     @available(iOS 7.0, *)
-    public static func upload(_ urlString: String, parameters: [String: String]? = nil, videos: [String: URL]? = nil, images: [String: UIImage]? = nil, audios: [String: URL]? = nil, callback: @escaping (String, Bool) -> ()) throws {
+    public static func upload(_ urlString: String, parameters: [String: String]? = nil, videos: [String: URL]? = nil, images: [String: UIImage]? = nil, audios: [String: URL]? = nil, callback: @escaping (String, Bool) -> ()) {
         
         guard let url = URL(string: urlString) else {
-            throw NKHttpError.invalidUrl
+            DispatchQueue.main.async {
+                callback("", false)
+            }
+            return
         }
         
         let request = NSMutableURLRequest(url: url)
@@ -89,24 +92,40 @@ extension NKHttp {
         
         if let videos = videos {
             for (name, video) in videos {
-                let videoData = try Data(contentsOf: video, options: Data.ReadingOptions.alwaysMapped)
-                body.appendString(string: "--\(boundary)\r\n")
-                body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"video.mp4\"\r\n")
-                body.appendString(string: "Content-Type: video/mp4\r\n\r\n")
-                body.append(videoData as Data)
-                body.appendString(string: "\r\n")
+                var videoData: Data?
+                do {
+                    videoData = try Data(contentsOf: video, options: Data.ReadingOptions.alwaysMapped)
+                } catch _ {
+                    videoData = nil
+                }
+                
+                if let videoData = videoData {
+                    body.appendString(string: "--\(boundary)\r\n")
+                    body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"video.mp4\"\r\n")
+                    body.appendString(string: "Content-Type: video/mp4\r\n\r\n")
+                    body.append(videoData as Data)
+                    body.appendString(string: "\r\n")
+                }
             }
         }
         
         
         if let audios = audios {
             for (name, audio) in audios {
-                let audioData = try Data(contentsOf: audio, options: Data.ReadingOptions.alwaysMapped)
-                body.appendString(string: "--\(boundary)\r\n")
-                body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"audio.m4a\"\r\n")
-                body.appendString(string: "Content-Type: audio/m4a\r\n\r\n")
-                body.append(audioData as Data)
-                body.appendString(string: "\r\n")
+                var audioData: Data?
+                do {
+                    audioData = try Data(contentsOf: audio, options: Data.ReadingOptions.alwaysMapped)
+                } catch _ {
+                    audioData = nil
+                }
+                
+                if let audioData = audioData {
+                    body.appendString(string: "--\(boundary)\r\n")
+                    body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"audio.m4a\"\r\n")
+                    body.appendString(string: "Content-Type: audio/m4a\r\n\r\n")
+                    body.append(audioData as Data)
+                    body.appendString(string: "\r\n")
+                }
             }
         }
         
@@ -178,10 +197,13 @@ extension NKHttp {
     ///   - parameters: Post url parameters, default is `nil`
     ///   - type: The model type, needs to conform to `Decodable`
     ///   - callback: The callback with `Optional` object
-    public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, callback: @escaping (T?) -> ()) throws {
+    public static func postObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, callback: @escaping (T?) -> ()) {
         
         guard let url = URL(string: urlString) else {
-            throw NKHttpError.invalidUrl
+            DispatchQueue.main.async {
+                callback(nil)
+            }
+            return
         }
         
         var request = URLRequest(url: url)
@@ -267,10 +289,13 @@ extension NKHttp {
     ///   - parameters: Post url parameters, default is `nil`
     ///   - type: The model type, needs to conform to `Decodable`
     ///   - callback: The callback with `Optional` object array
-    public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, callback: @escaping ([T]?) -> ()) throws {
+    public static func postObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, callback: @escaping ([T]?) -> ()) {
         
         guard let url = URL(string: urlString) else {
-            throw NKHttpError.invalidUrl
+            DispatchQueue.main.async {
+                callback(nil)
+            }
+            return
         }
         
         var request = URLRequest(url: url)
@@ -348,10 +373,13 @@ extension NKHttp {
     ///   - urlString: The url as `String`
     ///   - parameters: Post url parameters, default is `nil`
     ///   - callback: The callback with result body and success `Bool`
-    public static func post(_ urlString: String, parameters: [String: String]? = nil, callback: @escaping (String, Bool) -> ()) throws {
+    public static func post(_ urlString: String, parameters: [String: String]? = nil, callback: @escaping (String, Bool) -> ()) {
         
         guard let url = URL(string: urlString) else {
-            throw NKHttpError.invalidUrl
+            DispatchQueue.main.async {
+                callback("", false)
+            }
+            return
         }
         
         var request = URLRequest(url: url)
@@ -422,11 +450,14 @@ extension NKHttp {
     ///   - parameters: Get url parameters, default is `nil`
     ///   - type: The model type, needs to conform to `Decodable`
     ///   - callback: The callback with `Optional` object
-    public static func getObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, callback: @escaping (T?) -> ()) throws {
+    public static func getObject<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, callback: @escaping (T?) -> ()) {
         
         let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
         guard let url = URL(string: urlWithParameters) else {
-            throw NKHttpError.invalidUrl
+            DispatchQueue.main.async {
+                callback(nil)
+            }
+            return
         }
         
         var request = URLRequest(url: url)
@@ -511,12 +542,15 @@ extension NKHttp {
     ///   - parameters: Get url parameters, default is `nil`
     ///   - type: The model type, needs to conform to `Decodable`
     ///   - callback: The callback with `Optional` object array
-    public static func getObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, callback: @escaping ([T]?) -> ()) throws {
+    public static func getObjectArray<T: Decodable>(_ urlString: String, parameters: [String: String]? = nil, type: T.Type, callback: @escaping ([T]?) -> ()) {
         
         
         let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
         guard let url = URL(string: urlWithParameters) else {
-            throw NKHttpError.invalidUrl
+            DispatchQueue.main.async {
+                callback(nil)
+            }
+            return
         }
         
         var request = URLRequest(url: url)
@@ -593,11 +627,14 @@ extension NKHttp {
     ///   - urlString: The url as `String`
     ///   - parameters: Get url parameters, default is `nil`
     ///   - callback: The callback with result body and success `Bool`
-    public static func get(_ urlString: String, parameters: [String: String]? = nil, callback: @escaping (String, Bool) -> ()) throws {
+    public static func get(_ urlString: String, parameters: [String: String]? = nil, callback: @escaping (String, Bool) -> ()) {
         
         let urlWithParameters = parameters == nil ? urlString : urlString + "?" + buildParameterString(parameters)
         guard let url = URL(string: urlWithParameters) else {
-            throw NKHttpError.invalidUrl
+            DispatchQueue.main.async {
+                callback("", false)
+            }
+            return
         }
         
         // Prepare URL Request Object
