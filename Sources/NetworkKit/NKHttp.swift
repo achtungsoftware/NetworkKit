@@ -51,7 +51,7 @@ extension NKHttp {
 #if os(iOS)
     
     @available(iOS 7.0, *)
-    public static func upload(_ urlString: String, parameters: [String: String]? = nil, videos: [String: URL]? = nil, images: [String: UIImage]? = nil, audios: [String: URL]? = nil, callback: @escaping (String, Bool) -> ()) {
+    public static func upload(_ urlString: String, parameters: [String: String]? = nil, videos: [String: URL]? = nil, images: [String: UIImage]? = nil, audios: [String: URL]? = nil, imageCompressionQuality: Double = 0.95, callback: @escaping (String, Bool) -> ()) {
         
         guard let url = URL(string: urlString) else {
             DispatchQueue.main.async {
@@ -80,7 +80,7 @@ extension NKHttp {
         
         if let images = images {
             for (name, image) in images {
-                if let imageData = image.jpegData(compressionQuality: 0.8) {
+                if let imageData = image.jpegData(compressionQuality: imageCompressionQuality) {
                     body.appendString(string: "--\(boundary)\r\n")
                     body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"image.jpg\"\r\n")
                     body.appendString(string: "Content-Type: image/jpg\r\n\r\n")
