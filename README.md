@@ -24,7 +24,7 @@ let (result, success) = try await NKHttp.post("YOUR_URL_STRING", parameters: ["f
 let obj: Model = try await NKHttp.postObject("YOUR_URL_STRING", parameters: ["foo": "bar"], type: Model.self)
 
 // Post request (json object model array)
-let array: Model = try await NKHttp.postObjectArray("YOUR_URL_STRING", parameters: ["foo": "bar"], type: Model.self)
+let array: Array<Model> = try await NKHttp.postObjectArray("YOUR_URL_STRING", parameters: ["foo": "bar"], type: Model.self)
 ```
 
 ## With callback / completition
