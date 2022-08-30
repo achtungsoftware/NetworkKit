@@ -33,7 +33,7 @@ Replace ``post`` with ``get`` to make get requests instead.
 
 ```swift
 // Post request
-NKHttp.post("YOUR_URL_STRING", parameters: ["foo": "bar"], type: Model.self] { result, success in
+NKHttp.post("YOUR_URL_STRING", parameters: ["foo": "bar"]) { result, success in
     if success {
         print(result)
     }
