@@ -742,7 +742,12 @@ extension NKHttp {
         guard let jsonData = try await post(urlString, parameters: parameters).0.data(using: .utf8) else {
             throw NKHttpError.encodingDataFailed
         }
-        return try jsonDecoder.decode(T.self, from: jsonData)
+
+        do {
+            return try jsonDecoder.decode(T.self, from: jsonData)
+        } catch is DecodingError {
+            throw NKHttpError.decodingDataFailed
+        }
     }
     
     /// Post a json object array with asynchronous http get
@@ -761,7 +766,12 @@ extension NKHttp {
         guard let jsonData = try await post(urlString, parameters: parameters).0.data(using: .utf8) else {
             throw NKHttpError.encodingDataFailed
         }
-        return try jsonDecoder.decode([T].self, from: jsonData)
+        
+        do {
+            return try jsonDecoder.decode([T].self, from: jsonData)
+        } catch is DecodingError {
+            throw NKHttpError.decodingDataFailed
+        }
     }
 }
 
@@ -819,7 +829,12 @@ extension NKHttp {
         guard let jsonData = try await get(urlString, parameters: parameters).0.data(using: .utf8) else {
             throw NKHttpError.encodingDataFailed
         }
-        return try jsonDecoder.decode(T.self, from: jsonData)
+        
+        do {
+            return try jsonDecoder.decode(T.self, from: jsonData)
+        } catch is DecodingError {
+            throw NKHttpError.decodingDataFailed
+        }
     }
     
     /// Get a json object array with asynchronous http get
@@ -838,7 +853,12 @@ extension NKHttp {
         guard let jsonData = try await get(urlString, parameters: parameters).0.data(using: .utf8) else {
             throw NKHttpError.encodingDataFailed
         }
-        return try jsonDecoder.decode([T].self, from: jsonData)
+        
+        do {
+            return try jsonDecoder.decode([T].self, from: jsonData)
+        } catch is DecodingError {
+            throw NKHttpError.decodingDataFailed
+        }
     }
 }
 #endif

@@ -25,6 +25,10 @@ struct Httpbin {
     }
 }
 
+struct FakeModel: Codable {
+    let fakeProp: String
+}
+
 @available(macOS 12.0, iOS 15.0, watchOS 8.0, tvOS 15.0, *)
 final class NetworkKitTests: XCTestCase {
     
@@ -54,6 +58,24 @@ final class NetworkKitTests: XCTestCase {
     func test_get_object_async() async throws {
         let object = try await NKHttp.getObject(Httpbin.GET_URL, parameters: ["foo": "bar"], type: Httpbin.Get.self)
         XCTAssertEqual(object.args.foo, "bar")
+    }
+    
+    func test_post_decodingDataFailed_object_async() async throws {
+        do {
+            let _ = try await NKHttp.postObject(Httpbin.POST_URL, parameters: ["foo": "bar"], type: FakeModel.self)
+        }
+        catch {
+            XCTAssertEqual(error as! NKHttpError, NKHttpError.decodingDataFailed)
+        }
+    }
+    
+    func test_get_decodingDataFailed_object_async() async throws {
+        do {
+            let _ = try await NKHttp.getObject(Httpbin.GET_URL, parameters: ["foo": "bar"], type: FakeModel.self)
+        }
+        catch {
+            XCTAssertEqual(error as! NKHttpError, NKHttpError.decodingDataFailed)
+        }
     }
     
     func test_post_async() async throws {
