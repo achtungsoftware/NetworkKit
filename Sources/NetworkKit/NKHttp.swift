@@ -60,7 +60,13 @@ extension NKHttp {
     ///   - audios: Optional `Array` of audio `Url`'s for upload
     ///   - imageCompressionQuality: The compression quality for images
     ///   - callback: The callback with the result body and success `Bool`
-    public static func upload(_ urlString: String, parameters: [String: String]? = nil, videos: [String: URL]? = nil, images: [String: UIImage]? = nil, audios: [String: URL]? = nil, imageCompressionQuality: Double = 0.95, callback: @escaping (String, Bool) -> ()) {
+    public static func upload(_ urlString: String, 
+        parameters: [String: String]? = nil, 
+        videos: [String: URL]? = nil, 
+        images: [String: UIImage]? = nil, 
+        audios: [String: URL]? = nil, 
+        imageCompressionQuality: Double = 0.95, 
+        callback: @escaping (String, Bool) -> ()) {
         
         guard let url = URL(string: urlString) else {
             DispatchQueue.main.async {
@@ -711,7 +717,12 @@ extension NKHttp {
     ///   - audios: Optional `Array` of audio `Url`'s for upload
     ///   - imageCompressionQuality: The compression quality for images
     /// - Returns: The result body and success `Bool`
-    public static func upload(_ urlString: String, parameters: [String: String]? = nil, videos: [String: URL]? = nil, images: [String: UIImage]? = nil, audios: [String: URL]? = nil, imageCompressionQuality: Double = 0.95) async throws -> (String, Bool) {
+    public static func upload(_ urlString: String, 
+        parameters: [String: String]? = nil, 
+        videos: [String: URL]? = nil, 
+        images: [String: UIImage]? = nil, 
+        audios: [String: URL]? = nil, 
+        imageCompressionQuality: Double = 0.95) async throws -> (String, Bool) {
         
         guard let url = URL(string: urlString) else {
             throw NKHttpError.invalidUrl
