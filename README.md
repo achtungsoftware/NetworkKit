@@ -53,3 +53,27 @@ NKHttp.postObjectArray("YOUR_URL_STRING", parameters: ["foo": "bar"], type: Mode
     }
 }
 ```
+
+## Upload
+The upload method allows you to upload multiple `UIImages`, video `URLs` and audio `URLs`.
+```swift
+// Callback
+NKHttp.upload("YOUR_URL_STRING", parameters: ["foo": "bar"],
+videos: [String: URL], 
+images: [String: UIImage], 
+audios: [String: URL]) { result, success in
+    if success {
+        print(result)
+    }
+}
+
+// Async await
+let (result, success) = await NKHttp.upload("YOUR_URL_STRING", parameters: ["foo": "bar"],
+videos: [String: URL], 
+images: [String: UIImage], 
+audios: [String: URL])
+
+if success {
+    print(result)
+}
+```
