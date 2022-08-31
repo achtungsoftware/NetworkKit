@@ -690,6 +690,104 @@ extension NKHttp {
 /// POST async methods
 extension NKHttp {
     
+#if os(iOS)
+    
+    @available(iOS 15.0, *)
+    public static func upload(_ urlString: String, parameters: [String: String]? = nil, videos: [String: URL]? = nil, images: [String: UIImage]? = nil, audios: [String: URL]? = nil, imageCompressionQuality: Double = 0.95) async throws -> (String, Bool) {
+        
+        guard let url = URL(string: urlString) else {
+            throw NKHttpError.invalidUrl
+        }
+        
+        // Prepare URL Request Object
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        
+        let boundary = "Boundary-\(NSUUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        
+        let body = NSMutableData()
+        
+        if let parameters = parameters {
+            for (key, value) in parameters {
+                body.appendString(string: "--\(boundary)\r\n")
+                body.appendString(string: "Content-Disposition: form-data; name=\"\(key)\"\r\n\r\n")
+                body.appendString(string: "\(value)\r\n")
+            }
+        }
+        
+        if let images = images {
+            for (name, image) in images {
+                if let imageData = image.jpegData(compressionQuality: imageCompressionQuality) {
+                    body.appendString(string: "--\(boundary)\r\n")
+                    body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"image.jpg\"\r\n")
+                    body.appendString(string: "Content-Type: image/jpg\r\n\r\n")
+                    body.append(imageData as Data)
+                    body.appendString(string: "\r\n")
+                }
+            }
+        }
+        
+        if let videos = videos {
+            for (name, video) in videos {
+                var videoData: Data?
+                do {
+                    videoData = try Data(contentsOf: video, options: Data.ReadingOptions.alwaysMapped)
+                } catch _ {
+                    videoData = nil
+                }
+                
+                if let videoData = videoData {
+                    body.appendString(string: "--\(boundary)\r\n")
+                    body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"video.mp4\"\r\n")
+                    body.appendString(string: "Content-Type: video/mp4\r\n\r\n")
+                    body.append(videoData as Data)
+                    body.appendString(string: "\r\n")
+                }
+            }
+        }
+        
+        
+        if let audios = audios {
+            for (name, audio) in audios {
+                var audioData: Data?
+                do {
+                    audioData = try Data(contentsOf: audio, options: Data.ReadingOptions.alwaysMapped)
+                } catch _ {
+                    audioData = nil
+                }
+                
+                if let audioData = audioData {
+                    body.appendString(string: "--\(boundary)\r\n")
+                    body.appendString(string: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"audio.m4a\"\r\n")
+                    body.appendString(string: "Content-Type: audio/m4a\r\n\r\n")
+                    body.append(audioData as Data)
+                    body.appendString(string: "\r\n")
+                }
+            }
+        }
+        
+        body.appendString(string: "--\(boundary)--\r\n")
+        
+        request.httpBody = body as Data
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let dataString = String(data: data, encoding: .utf8) else {
+            throw NKHttpError.decodingDataFailed
+        }
+        
+        guard let response = response as? HTTPURLResponse else {
+            throw NKHttpError.responseFailed
+        }
+        
+        return (dataString, response.statusCode == 200)
+    }
+    
+#endif
+    
     /// Asynchronous http post
     ///
     /// Example:
