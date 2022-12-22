@@ -65,7 +65,8 @@ extension NKHttp {
         videos: [String: URL]? = nil, 
         images: [String: UIImage]? = nil, 
         audios: [String: URL]? = nil, 
-        imageCompressionQuality: Double = 0.95, 
+        imageCompressionQuality: Double = 0.95,
+        timeoutInterval: TimeInterval = 60.0,
         callback: @escaping (String, Bool) -> ()) {
         
         guard let url = URL(string: urlString) else {
@@ -77,6 +78,7 @@ extension NKHttp {
         
         let request = NSMutableURLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = timeoutInterval
         
         
         let boundary = "Boundary-\(NSUUID().uuidString)"
@@ -722,14 +724,15 @@ extension NKHttp {
         videos: [String: URL]? = nil, 
         images: [String: UIImage]? = nil, 
         audios: [String: URL]? = nil, 
-        imageCompressionQuality: Double = 0.95) async throws -> (String, Bool) {
+        imageCompressionQuality: Double = 0.95,
+        timeoutInterval: TimeInterval = 60.0) async throws -> (String, Bool) {
         
         guard let url = URL(string: urlString) else {
             throw NKHttpError.invalidUrl
         }
         
         // Prepare URL Request Object
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: url, timeoutInterval: timeoutInterval)
         request.httpMethod = "POST"
         
         
